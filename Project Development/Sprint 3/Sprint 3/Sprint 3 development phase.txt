@@ -1,0 +1,813 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "o0OnFFMCv9QF"
+      },
+      "outputs": [],
+      "source": [
+        "#pip install kaggle"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "ZMRgOJNEv9ST"
+      },
+      "outputs": [],
+      "source": [
+        "#! mkdir ~/.kaggle"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "rlIWxyvPv9aL"
+      },
+      "outputs": [],
+      "source": [
+        "#! cp kaggle.json ~/.kaggle/"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "j_NdY8dMv9cF"
+      },
+      "outputs": [],
+      "source": [
+        "#! chmod 600 ~/.kaggle/kaggle.json"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "uw-hqWR_q_vh"
+      },
+      "outputs": [],
+      "source": [
+        "#!kaggle datasets download -d arbethi/diabetic-retinopathy-level-detection"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "KsmCr5xytJWS",
+        "outputId": "b3afb093-3760-43ef-d9ab-b0087048b072"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Drive already mounted at /content/drive/; to attempt to forcibly remount, call drive.mount(\"/content/drive/\", force_remount=True).\n"
+          ]
+        }
+      ],
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive/')"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_8y4-RFevZPR",
+        "outputId": "0edbc72c-252d-4f22-f55b-c7f364766e2b"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "/content/drive/MyDrive/IBM_DataSet\n"
+          ]
+        }
+      ],
+      "source": [
+        "cd /content/drive/MyDrive/IBM_DataSet/"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "vE0GXOny5OLb",
+        "outputId": "e1d1fe3e-f510-412e-88e8-842f51471404"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Archive:  DataSetDiabeticRetenopathy.zip\n",
+            "replace inception-diabetic.h5? [y]es, [n]o, [A]ll, [N]one, [r]ename: N\n"
+          ]
+        }
+      ],
+      "source": [
+        "! unzip DataSetDiabeticRetenopathy.zip"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "OuoWQVxQ5WsZ"
+      },
+      "outputs": [],
+      "source": [
+        "imageSize = [299,299]\n",
+        "trainPath= r\"/content/preprocessed dataset/preprocessed dataset/training\"\n",
+        "testPath= r\"/content/preprocessed dataset/preprocessed dataset/testing\""
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "fViZG_tXuPNB"
+      },
+      "outputs": [],
+      "source": [
+        "from tensorflow.keras.layers import Dense, Flatten, Input\n",
+        "from tensorflow.keras.models import Model\n",
+        "from tensorflow.keras.preprocessing import image\n",
+        "from tensorflow.keras.preprocessing.image import ImageDataGenerator ,load_img\n",
+        "from tensorflow.keras.applications.xception import Xception,preprocess_input\n",
+        "from glob import glob\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "eZK7V3pFwnRo"
+      },
+      "outputs": [],
+      "source": [
+        "train_datagen=ImageDataGenerator(rescale=1./255,shear_range=0.2,zoom_range=0.2,horizontal_flip=True)\n",
+        "test_datagen=ImageDataGenerator(rescale=1./255)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "7NLf8D5hxdM5",
+        "outputId": "4fd1cc62-63c8-4ce6-9956-754c93b294cd"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Found 3662 images belonging to 5 classes.\n",
+            "Found 734 images belonging to 5 classes.\n"
+          ]
+        }
+      ],
+      "source": [
+        "training_set=train_datagen.flow_from_directory('/content/drive/MyDrive/IBM_DataSet/preprocessed dataset/preprocessed dataset/training',target_size=(299,299),batch_size=32,class_mode=\"categorical\")\n",
+        "test_set=test_datagen.flow_from_directory('/content/drive/MyDrive/IBM_DataSet/preprocessed dataset/preprocessed dataset/testing',target_size=(299,299),batch_size=32,class_mode=\"categorical\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4sYgBjFZyvS4",
+        "outputId": "fbe5bae1-5422-4c34-d645-baf203068ad7"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/xception/xception_weights_tf_dim_ordering_tf_kernels_notop.h5\n",
+            "83683744/83683744 [==============================] - 1s 0us/step\n"
+          ]
+        }
+      ],
+      "source": [
+        "xception = Xception(input_shape=imageSize + [3],weights='imagenet',include_top=False)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "uBzj4Fjk_Dkc"
+      },
+      "outputs": [],
+      "source": [
+        "for layer in xception.layers:\n",
+        "  layer.trainable = False"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "hZilYBSB_HwU"
+      },
+      "outputs": [],
+      "source": [
+        "x=Flatten()(xception.output)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "FHhi5WmZ8ded"
+      },
+      "outputs": [],
+      "source": [
+        "prediction = Dense(5, activation='softmax')(x)\n",
+        "model = Model(inputs=xception.input, outputs=prediction)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "OZUev-c3_Saz",
+        "outputId": "e21bba9c-733c-4a50-84fa-125cc0effb4b"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Model: \"model\"\n",
+            "__________________________________________________________________________________________________\n",
+            " Layer (type)                   Output Shape         Param #     Connected to                     \n",
+            "==================================================================================================\n",
+            " input_1 (InputLayer)           [(None, 299, 299, 3  0           []                               \n",
+            "                                )]                                                                \n",
+            "                                                                                                  \n",
+            " block1_conv1 (Conv2D)          (None, 149, 149, 32  864         ['input_1[0][0]']                \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " block1_conv1_bn (BatchNormaliz  (None, 149, 149, 32  128        ['block1_conv1[0][0]']           \n",
+            " ation)                         )                                                                 \n",
+            "                                                                                                  \n",
+            " block1_conv1_act (Activation)  (None, 149, 149, 32  0           ['block1_conv1_bn[0][0]']        \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " block1_conv2 (Conv2D)          (None, 147, 147, 64  18432       ['block1_conv1_act[0][0]']       \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " block1_conv2_bn (BatchNormaliz  (None, 147, 147, 64  256        ['block1_conv2[0][0]']           \n",
+            " ation)                         )                                                                 \n",
+            "                                                                                                  \n",
+            " block1_conv2_act (Activation)  (None, 147, 147, 64  0           ['block1_conv2_bn[0][0]']        \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " block2_sepconv1 (SeparableConv  (None, 147, 147, 12  8768       ['block1_conv2_act[0][0]']       \n",
+            " 2D)                            8)                                                                \n",
+            "                                                                                                  \n",
+            " block2_sepconv1_bn (BatchNorma  (None, 147, 147, 12  512        ['block2_sepconv1[0][0]']        \n",
+            " lization)                      8)                                                                \n",
+            "                                                                                                  \n",
+            " block2_sepconv2_act (Activatio  (None, 147, 147, 12  0          ['block2_sepconv1_bn[0][0]']     \n",
+            " n)                             8)                                                                \n",
+            "                                                                                                  \n",
+            " block2_sepconv2 (SeparableConv  (None, 147, 147, 12  17536      ['block2_sepconv2_act[0][0]']    \n",
+            " 2D)                            8)                                                                \n",
+            "                                                                                                  \n",
+            " block2_sepconv2_bn (BatchNorma  (None, 147, 147, 12  512        ['block2_sepconv2[0][0]']        \n",
+            " lization)                      8)                                                                \n",
+            "                                                                                                  \n",
+            " conv2d (Conv2D)                (None, 74, 74, 128)  8192        ['block1_conv2_act[0][0]']       \n",
+            "                                                                                                  \n",
+            " block2_pool (MaxPooling2D)     (None, 74, 74, 128)  0           ['block2_sepconv2_bn[0][0]']     \n",
+            "                                                                                                  \n",
+            " batch_normalization (BatchNorm  (None, 74, 74, 128)  512        ['conv2d[0][0]']                 \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " add (Add)                      (None, 74, 74, 128)  0           ['block2_pool[0][0]',            \n",
+            "                                                                  'batch_normalization[0][0]']    \n",
+            "                                                                                                  \n",
+            " block3_sepconv1_act (Activatio  (None, 74, 74, 128)  0          ['add[0][0]']                    \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block3_sepconv1 (SeparableConv  (None, 74, 74, 256)  33920      ['block3_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block3_sepconv1_bn (BatchNorma  (None, 74, 74, 256)  1024       ['block3_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block3_sepconv2_act (Activatio  (None, 74, 74, 256)  0          ['block3_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block3_sepconv2 (SeparableConv  (None, 74, 74, 256)  67840      ['block3_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block3_sepconv2_bn (BatchNorma  (None, 74, 74, 256)  1024       ['block3_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " conv2d_1 (Conv2D)              (None, 37, 37, 256)  32768       ['add[0][0]']                    \n",
+            "                                                                                                  \n",
+            " block3_pool (MaxPooling2D)     (None, 37, 37, 256)  0           ['block3_sepconv2_bn[0][0]']     \n",
+            "                                                                                                  \n",
+            " batch_normalization_1 (BatchNo  (None, 37, 37, 256)  1024       ['conv2d_1[0][0]']               \n",
+            " rmalization)                                                                                     \n",
+            "                                                                                                  \n",
+            " add_1 (Add)                    (None, 37, 37, 256)  0           ['block3_pool[0][0]',            \n",
+            "                                                                  'batch_normalization_1[0][0]']  \n",
+            "                                                                                                  \n",
+            " block4_sepconv1_act (Activatio  (None, 37, 37, 256)  0          ['add_1[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block4_sepconv1 (SeparableConv  (None, 37, 37, 728)  188672     ['block4_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block4_sepconv1_bn (BatchNorma  (None, 37, 37, 728)  2912       ['block4_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block4_sepconv2_act (Activatio  (None, 37, 37, 728)  0          ['block4_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block4_sepconv2 (SeparableConv  (None, 37, 37, 728)  536536     ['block4_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block4_sepconv2_bn (BatchNorma  (None, 37, 37, 728)  2912       ['block4_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " conv2d_2 (Conv2D)              (None, 19, 19, 728)  186368      ['add_1[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block4_pool (MaxPooling2D)     (None, 19, 19, 728)  0           ['block4_sepconv2_bn[0][0]']     \n",
+            "                                                                                                  \n",
+            " batch_normalization_2 (BatchNo  (None, 19, 19, 728)  2912       ['conv2d_2[0][0]']               \n",
+            " rmalization)                                                                                     \n",
+            "                                                                                                  \n",
+            " add_2 (Add)                    (None, 19, 19, 728)  0           ['block4_pool[0][0]',            \n",
+            "                                                                  'batch_normalization_2[0][0]']  \n",
+            "                                                                                                  \n",
+            " block5_sepconv1_act (Activatio  (None, 19, 19, 728)  0          ['add_2[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block5_sepconv1 (SeparableConv  (None, 19, 19, 728)  536536     ['block5_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block5_sepconv1_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block5_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block5_sepconv2_act (Activatio  (None, 19, 19, 728)  0          ['block5_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block5_sepconv2 (SeparableConv  (None, 19, 19, 728)  536536     ['block5_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block5_sepconv2_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block5_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block5_sepconv3_act (Activatio  (None, 19, 19, 728)  0          ['block5_sepconv2_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block5_sepconv3 (SeparableConv  (None, 19, 19, 728)  536536     ['block5_sepconv3_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block5_sepconv3_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block5_sepconv3[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " add_3 (Add)                    (None, 19, 19, 728)  0           ['block5_sepconv3_bn[0][0]',     \n",
+            "                                                                  'add_2[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block6_sepconv1_act (Activatio  (None, 19, 19, 728)  0          ['add_3[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block6_sepconv1 (SeparableConv  (None, 19, 19, 728)  536536     ['block6_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block6_sepconv1_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block6_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block6_sepconv2_act (Activatio  (None, 19, 19, 728)  0          ['block6_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block6_sepconv2 (SeparableConv  (None, 19, 19, 728)  536536     ['block6_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block6_sepconv2_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block6_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block6_sepconv3_act (Activatio  (None, 19, 19, 728)  0          ['block6_sepconv2_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block6_sepconv3 (SeparableConv  (None, 19, 19, 728)  536536     ['block6_sepconv3_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block6_sepconv3_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block6_sepconv3[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " add_4 (Add)                    (None, 19, 19, 728)  0           ['block6_sepconv3_bn[0][0]',     \n",
+            "                                                                  'add_3[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block7_sepconv1_act (Activatio  (None, 19, 19, 728)  0          ['add_4[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block7_sepconv1 (SeparableConv  (None, 19, 19, 728)  536536     ['block7_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block7_sepconv1_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block7_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block7_sepconv2_act (Activatio  (None, 19, 19, 728)  0          ['block7_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block7_sepconv2 (SeparableConv  (None, 19, 19, 728)  536536     ['block7_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block7_sepconv2_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block7_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block7_sepconv3_act (Activatio  (None, 19, 19, 728)  0          ['block7_sepconv2_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block7_sepconv3 (SeparableConv  (None, 19, 19, 728)  536536     ['block7_sepconv3_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block7_sepconv3_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block7_sepconv3[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " add_5 (Add)                    (None, 19, 19, 728)  0           ['block7_sepconv3_bn[0][0]',     \n",
+            "                                                                  'add_4[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block8_sepconv1_act (Activatio  (None, 19, 19, 728)  0          ['add_5[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block8_sepconv1 (SeparableConv  (None, 19, 19, 728)  536536     ['block8_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block8_sepconv1_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block8_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block8_sepconv2_act (Activatio  (None, 19, 19, 728)  0          ['block8_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block8_sepconv2 (SeparableConv  (None, 19, 19, 728)  536536     ['block8_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block8_sepconv2_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block8_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block8_sepconv3_act (Activatio  (None, 19, 19, 728)  0          ['block8_sepconv2_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block8_sepconv3 (SeparableConv  (None, 19, 19, 728)  536536     ['block8_sepconv3_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block8_sepconv3_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block8_sepconv3[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " add_6 (Add)                    (None, 19, 19, 728)  0           ['block8_sepconv3_bn[0][0]',     \n",
+            "                                                                  'add_5[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block9_sepconv1_act (Activatio  (None, 19, 19, 728)  0          ['add_6[0][0]']                  \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block9_sepconv1 (SeparableConv  (None, 19, 19, 728)  536536     ['block9_sepconv1_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block9_sepconv1_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block9_sepconv1[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block9_sepconv2_act (Activatio  (None, 19, 19, 728)  0          ['block9_sepconv1_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block9_sepconv2 (SeparableConv  (None, 19, 19, 728)  536536     ['block9_sepconv2_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block9_sepconv2_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block9_sepconv2[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " block9_sepconv3_act (Activatio  (None, 19, 19, 728)  0          ['block9_sepconv2_bn[0][0]']     \n",
+            " n)                                                                                               \n",
+            "                                                                                                  \n",
+            " block9_sepconv3 (SeparableConv  (None, 19, 19, 728)  536536     ['block9_sepconv3_act[0][0]']    \n",
+            " 2D)                                                                                              \n",
+            "                                                                                                  \n",
+            " block9_sepconv3_bn (BatchNorma  (None, 19, 19, 728)  2912       ['block9_sepconv3[0][0]']        \n",
+            " lization)                                                                                        \n",
+            "                                                                                                  \n",
+            " add_7 (Add)                    (None, 19, 19, 728)  0           ['block9_sepconv3_bn[0][0]',     \n",
+            "                                                                  'add_6[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block10_sepconv1_act (Activati  (None, 19, 19, 728)  0          ['add_7[0][0]']                  \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block10_sepconv1 (SeparableCon  (None, 19, 19, 728)  536536     ['block10_sepconv1_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block10_sepconv1_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block10_sepconv1[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block10_sepconv2_act (Activati  (None, 19, 19, 728)  0          ['block10_sepconv1_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block10_sepconv2 (SeparableCon  (None, 19, 19, 728)  536536     ['block10_sepconv2_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block10_sepconv2_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block10_sepconv2[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block10_sepconv3_act (Activati  (None, 19, 19, 728)  0          ['block10_sepconv2_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block10_sepconv3 (SeparableCon  (None, 19, 19, 728)  536536     ['block10_sepconv3_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block10_sepconv3_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block10_sepconv3[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " add_8 (Add)                    (None, 19, 19, 728)  0           ['block10_sepconv3_bn[0][0]',    \n",
+            "                                                                  'add_7[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block11_sepconv1_act (Activati  (None, 19, 19, 728)  0          ['add_8[0][0]']                  \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block11_sepconv1 (SeparableCon  (None, 19, 19, 728)  536536     ['block11_sepconv1_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block11_sepconv1_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block11_sepconv1[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block11_sepconv2_act (Activati  (None, 19, 19, 728)  0          ['block11_sepconv1_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block11_sepconv2 (SeparableCon  (None, 19, 19, 728)  536536     ['block11_sepconv2_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block11_sepconv2_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block11_sepconv2[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block11_sepconv3_act (Activati  (None, 19, 19, 728)  0          ['block11_sepconv2_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block11_sepconv3 (SeparableCon  (None, 19, 19, 728)  536536     ['block11_sepconv3_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block11_sepconv3_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block11_sepconv3[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " add_9 (Add)                    (None, 19, 19, 728)  0           ['block11_sepconv3_bn[0][0]',    \n",
+            "                                                                  'add_8[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block12_sepconv1_act (Activati  (None, 19, 19, 728)  0          ['add_9[0][0]']                  \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block12_sepconv1 (SeparableCon  (None, 19, 19, 728)  536536     ['block12_sepconv1_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block12_sepconv1_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block12_sepconv1[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block12_sepconv2_act (Activati  (None, 19, 19, 728)  0          ['block12_sepconv1_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block12_sepconv2 (SeparableCon  (None, 19, 19, 728)  536536     ['block12_sepconv2_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block12_sepconv2_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block12_sepconv2[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block12_sepconv3_act (Activati  (None, 19, 19, 728)  0          ['block12_sepconv2_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block12_sepconv3 (SeparableCon  (None, 19, 19, 728)  536536     ['block12_sepconv3_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block12_sepconv3_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block12_sepconv3[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " add_10 (Add)                   (None, 19, 19, 728)  0           ['block12_sepconv3_bn[0][0]',    \n",
+            "                                                                  'add_9[0][0]']                  \n",
+            "                                                                                                  \n",
+            " block13_sepconv1_act (Activati  (None, 19, 19, 728)  0          ['add_10[0][0]']                 \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block13_sepconv1 (SeparableCon  (None, 19, 19, 728)  536536     ['block13_sepconv1_act[0][0]']   \n",
+            " v2D)                                                                                             \n",
+            "                                                                                                  \n",
+            " block13_sepconv1_bn (BatchNorm  (None, 19, 19, 728)  2912       ['block13_sepconv1[0][0]']       \n",
+            " alization)                                                                                       \n",
+            "                                                                                                  \n",
+            " block13_sepconv2_act (Activati  (None, 19, 19, 728)  0          ['block13_sepconv1_bn[0][0]']    \n",
+            " on)                                                                                              \n",
+            "                                                                                                  \n",
+            " block13_sepconv2 (SeparableCon  (None, 19, 19, 1024  752024     ['block13_sepconv2_act[0][0]']   \n",
+            " v2D)                           )                                                                 \n",
+            "                                                                                                  \n",
+            " block13_sepconv2_bn (BatchNorm  (None, 19, 19, 1024  4096       ['block13_sepconv2[0][0]']       \n",
+            " alization)                     )                                                                 \n",
+            "                                                                                                  \n",
+            " conv2d_3 (Conv2D)              (None, 10, 10, 1024  745472      ['add_10[0][0]']                 \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " block13_pool (MaxPooling2D)    (None, 10, 10, 1024  0           ['block13_sepconv2_bn[0][0]']    \n",
+            "                                )                                                                 \n",
+            "                                                                                                  \n",
+            " batch_normalization_3 (BatchNo  (None, 10, 10, 1024  4096       ['conv2d_3[0][0]']               \n",
+            " rmalization)                   )                                                                 \n",
+            "                                                                                                  \n",
+            " add_11 (Add)                   (None, 10, 10, 1024  0           ['block13_pool[0][0]',           \n",
+            "                                )                                 'batch_normalization_3[0][0]']  \n",
+            "                                                                                                  \n",
+            " block14_sepconv1 (SeparableCon  (None, 10, 10, 1536  1582080    ['add_11[0][0]']                 \n",
+            " v2D)                           )                                                                 \n",
+            "                                                                                                  \n",
+            " block14_sepconv1_bn (BatchNorm  (None, 10, 10, 1536  6144       ['block14_sepconv1[0][0]']       \n",
+            " alization)                     )                                                                 \n",
+            "                                                                                                  \n",
+            " block14_sepconv1_act (Activati  (None, 10, 10, 1536  0          ['block14_sepconv1_bn[0][0]']    \n",
+            " on)                            )                                                                 \n",
+            "                                                                                                  \n",
+            " block14_sepconv2 (SeparableCon  (None, 10, 10, 2048  3159552    ['block14_sepconv1_act[0][0]']   \n",
+            " v2D)                           )                                                                 \n",
+            "                                                                                                  \n",
+            " block14_sepconv2_bn (BatchNorm  (None, 10, 10, 2048  8192       ['block14_sepconv2[0][0]']       \n",
+            " alization)                     )                                                                 \n",
+            "                                                                                                  \n",
+            " block14_sepconv2_act (Activati  (None, 10, 10, 2048  0          ['block14_sepconv2_bn[0][0]']    \n",
+            " on)                            )                                                                 \n",
+            "                                                                                                  \n",
+            " flatten (Flatten)              (None, 204800)       0           ['block14_sepconv2_act[0][0]']   \n",
+            "                                                                                                  \n",
+            " dense (Dense)                  (None, 5)            1024005     ['flatten[0][0]']                \n",
+            "                                                                                                  \n",
+            "==================================================================================================\n",
+            "Total params: 21,885,485\n",
+            "Trainable params: 1,024,005\n",
+            "Non-trainable params: 20,861,480\n",
+            "__________________________________________________________________________________________________\n"
+          ]
+        }
+      ],
+      "source": [
+        "model.summary()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "3elsWfDM_dGT"
+      },
+      "outputs": [],
+      "source": [
+        "model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "background_save": true,
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "V5C-q9SF_yJ0",
+        "outputId": "d65b5ef4-3f88-4301-c6ed-de4a2aadf46d"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Epoch 1/30\n",
+            "3/3 [==============================] - 61s 20s/step - loss: 10.2312 - accuracy: 0.5312\n",
+            "Epoch 2/30\n",
+            "3/3 [==============================] - 47s 14s/step - loss: 12.6885 - accuracy: 0.5104\n",
+            "Epoch 3/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 6.3498 - accuracy: 0.4792\n",
+            "Epoch 4/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 6.5009 - accuracy: 0.4896\n",
+            "Epoch 5/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 5.0261 - accuracy: 0.7292\n",
+            "Epoch 6/30\n",
+            "3/3 [==============================] - 42s 12s/step - loss: 4.2158 - accuracy: 0.6979\n",
+            "Epoch 7/30\n",
+            "3/3 [==============================] - 43s 13s/step - loss: 6.2286 - accuracy: 0.5521\n",
+            "Epoch 8/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 4.2619 - accuracy: 0.6354\n",
+            "Epoch 9/30\n",
+            "3/3 [==============================] - 46s 13s/step - loss: 2.9710 - accuracy: 0.6979\n",
+            "Epoch 10/30\n",
+            "3/3 [==============================] - 43s 13s/step - loss: 4.9285 - accuracy: 0.6250\n",
+            "Epoch 11/30\n",
+            "3/3 [==============================] - 47s 15s/step - loss: 6.3789 - accuracy: 0.7396\n",
+            "Epoch 12/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 4.5555 - accuracy: 0.6979\n",
+            "Epoch 13/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 3.8176 - accuracy: 0.6354\n",
+            "Epoch 14/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 6.1558 - accuracy: 0.5729\n",
+            "Epoch 15/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 7.2540 - accuracy: 0.5938\n",
+            "Epoch 16/30\n",
+            "3/3 [==============================] - 46s 13s/step - loss: 3.8292 - accuracy: 0.8021\n",
+            "Epoch 17/30\n",
+            "3/3 [==============================] - 43s 13s/step - loss: 2.8874 - accuracy: 0.7500\n",
+            "Epoch 18/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 5.1538 - accuracy: 0.6562\n",
+            "Epoch 19/30\n",
+            "3/3 [==============================] - 55s 17s/step - loss: 3.3385 - accuracy: 0.6562\n",
+            "Epoch 20/30\n",
+            "3/3 [==============================] - 46s 14s/step - loss: 4.8269 - accuracy: 0.6146\n",
+            "Epoch 21/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 3.8691 - accuracy: 0.6771\n",
+            "Epoch 22/30\n",
+            "3/3 [==============================] - 46s 13s/step - loss: 4.7864 - accuracy: 0.6667\n",
+            "Epoch 23/30\n",
+            "3/3 [==============================] - 37s 9s/step - loss: 4.1350 - accuracy: 0.6667\n",
+            "Epoch 24/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 3.4832 - accuracy: 0.7292\n",
+            "Epoch 25/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 4.6088 - accuracy: 0.6354\n",
+            "Epoch 26/30\n",
+            "3/3 [==============================] - 48s 14s/step - loss: 3.0549 - accuracy: 0.7083\n",
+            "Epoch 27/30\n",
+            "3/3 [==============================] - 45s 13s/step - loss: 3.7710 - accuracy: 0.6979\n",
+            "Epoch 28/30\n",
+            "3/3 [==============================] - 44s 13s/step - loss: 3.1814 - accuracy: 0.7812\n",
+            "Epoch 29/30\n",
+            "3/3 [==============================] - 46s 13s/step - loss: 3.2029 - accuracy: 0.7292\n",
+            "Epoch 30/30\n",
+            "3/3 [==============================] - 50s 14s/step - loss: 3.4440 - accuracy: 0.6771\n"
+          ]
+        }
+      ],
+      "source": [
+        "r=model.fit(training_set,validation_data=test_set,epochs=30,steps_per_epoch=len(training_set)//32,validation_steps=len(test_set)//32)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "background_save": true
+        },
+        "id": "zvBCAUjeJBKp",
+        "outputId": "64564221-e043-4739-d80c-718f6d2bae89"
+      },
+      "outputs": [
+        {
+          "name": "stderr",
+          "output_type": "stream",
+          "text": [
+            "WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op, _jit_compiled_convolution_op while saving (showing 5 of 40). These functions will not be directly callable after loading.\n"
+          ]
+        }
+      ],
+      "source": [
+        "model.save(\"updated.xception.diabetic.retinopathy.hs\")"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
